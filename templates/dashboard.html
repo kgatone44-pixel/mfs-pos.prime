@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFS POS - Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { background-color: #f4f7f6; font-family: 'Pyidaungsu', sans-serif; }
+        .navbar { background: linear-gradient(135deg, #0d6efd, #0099ff); }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
+    </style>
+</head>
+<body>
+
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="/dashboard">
+                <i class="fa-solid fa-store me-2"></i>{{ shop_name }} (POS)
+            </a>
+            <div class="d-flex align-items-center">
+                <span class="text-white me-3 d-none d-md-inline"><i class="fa-solid fa-user-shield me-1"></i> {{ username }}</span>
+                <a href="/history" class="btn btn-light btn-sm me-2 fw-bold text-primary">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> မှတ်တမ်းများ
+                </a>
+                <a href="/logout" class="btn btn-outline-light btn-sm">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i> ထွက်ရန်
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card stat-card bg-success text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">ዛሬဝင်ငွေ (Cash In)</h6>
+                            <h3 class="fw-bold mb-0">{{ "{:,.0f}".format(today_in) }} <small class="fs-6">ကျပ်</small></h3>
+                        </div>
+                        <i class="fa-solid fa-arrow-down-long fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card bg-danger text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">ዛሬထွက်ငွေ (Cash Out)</h6>
+                            <h3 class="fw-bold mb-0">{{ "{:,.0f}".format(today_out) }} <small class="fs-6">ကျပ်</small></h3>
+                        </div>
+                        <i class="fa-solid fa-arrow-up-long fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card bg-primary text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75">ዛሬရကော်မရှင် (Commission)</h6>
+                            <h3 class="fw-bold mb-0">{{ "{:,.0f}".format(today_comm) }} <small class="fs-6">ကျပ်</small></h3>
+                        </div>
+                        <i class="fa-solid fa-coins fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="row g-4">
+            <!-- Add Transaction Form -->
+            <div class="col-lg-4">
+                <div class="card p-4">
+                    <h5 class="fw-bold mb-3 text-primary"><i class="fa-solid fa-circle-plus me-2"></i>စာရင်းအသစ် ထည့်ရန်</h5>
+                    <form action="/add_transaction" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">ပြုလုပ်မည့် အမျိုးအစား</label>
+                            <select name="txn_type" id="txn_type" class="form-select" required onchange="updateCommissionDefaults()">
+                                <option value="Cash In">ငွေသွင်း (Cash In)</option>
+                                <option value="Cash Out">ငွေထုတ် (Cash Out)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">ဖောက်သည် ဖုန်းနံပါတ်</label>
+                            <input type="text" name="customer_phone" class="form-control" placeholder="09xxxxxxxxx">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">ကိုယ့်အကောင့် (Own Account)</label>
+                            <input type="text" name="own_account" class="form-control" list="accountList" placeholder="အကောင့်ရွေးပါ သို့မဟုတ် ရိုက်ထည့်ပါ" required>
+                            <datalist id="accountList">
+                                <option value="KBZPay (Main)">
+                                <option value="KBZPay (Shop 2)">
+                                <option value="Wave Money (Agent)">
+                                <option value="CB Bank">
+                                <option value="AYA Bank">
+                            </datalist>
+                            <div class="form-text text-muted">အသင့်ပါတာရွေးနိုင်သလို ကိုယ်ပိုင်အကောင့်အမည်လည်း ရိုက်ထည့်နိုင်ပါတယ်။</div>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">ပမာဏ (Amount)</label>
+                            <input type="number" step="any" name="amount" class="form-control" placeholder="ကျပ်ငွေ ပမာဏ" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold">ကော်မရှင် ရာခိုင်နှုန်း (%)</label>
+                            <input type="number" step="0.01" id="commission_rate" name="commission_rate" class="form-control" value="1.0" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                            <i class="fa-solid fa-check me-1"></i> စာရင်းသွင်းမည်
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Transactions Table -->
+            <div class="col-lg-8">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold text-dark m-0"><i class="fa-solid fa-list-check me-2"></i>လတ်တလော ငွေစာရင်းများ</h5>
+                        <a href="/dashboard" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate"></i> Refresh</a>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>အမျိုးအစား</th>
+                                    <th>ဖုန်းနံပါတ်</th>
+                                    <th>ကိုယ့်အကောင့်</th>
+                                    <th>ပမာဏ</th>
+                                    <th>ကော်မရှင်</th>
+                                    <th>အချိန်</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if transactions %}
+                                    {% for txn in transactions %}
+                                    <tr>
+                                        <td>
+                                            {% if txn.txn_type == 'Cash In' %}
+                                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 fw-bold">Cash In</span>
+                                            {% else %}
+                                                <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 fw-bold">Cash Out</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>{{ txn.customer_phone or '-' }}</td>
+                                        <td><span class="badge bg-light text-dark border">{{ txn.own_account or 'Main Account' }}</span></td>
+                                        <td class="fw-semibold">{{ "{:,.0f}".format(txn.amount) }} Ks</td>
+                                        <td class="text-primary fw-semibold">+{{ "{:,.0f}".format(txn.commission) }} Ks</td>
+                                        <td class="text-muted small">{{ txn.timestamp }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted">ယနေ့အတွက် ငွေစာရင်း ထည့်သွင်းထားခြင်း မရှိသေးပါ။</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        function updateCommissionDefaults() {
+            let type = document.getElementById('txn_type').value;
+            let rateInput = document.getElementById('commission_rate');
+            if(type === 'Cash In') {
+                rateInput.value = '1.0';
+            } else {
+                rateInput.value = '1.5';
+            }
+        }
+    </script>
+</body>
+</html>
