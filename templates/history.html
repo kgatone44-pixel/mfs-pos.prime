@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="my">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFS POS - History</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+</head>
+<body class="bg-light">
+    <nav class="navbar navbar-dark bg-primary shadow-sm">
+        <div class="container">
+            <a class="navbar-brand fw-bold" href="{{ url_for('dashboard') }}"><i class="bi bi-arrow-left me-2"></i> Dashboard သို့ ပြန်သွားရန်</a>
+        </div>
+    </nav>
+
+    <div class="container my-4">
+        <div class="card shadow-sm border-0">
+            <div class="card-header bg-white p-3">
+                <form action="{{ url_for('history') }}" method="GET" class="row g-2">
+                    <div class="col-md-10">
+                        <input type="text" name="search" class="form-control" placeholder="ဖုန်းနံပါတ်၊ မိမိအကောင့် သို့မဟုတ် အမျိုးအစားဖြင့် ရှာရန်..." value="{{ search_query }}">
+                    </div>
+                    <div class="col-md-2">
+                        <button type="submit" class="btn btn-primary w-100"><i class="bi bi-search"></i> ရှာဖွေမည်</button>
+                    </div>
+                </form>
+            </div>
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>#</th>
+                                <th>အချိန် (MMT)</th>
+                                <th>အမျိုးအစား</th>
+                                <th>မိမိအကောင့်</th>
+                                <th>ဖောက်သည် ဖုန်း</th>
+                                <th>ငွေပမာဏ</th>
+                                <th>ကော်မရှင်</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for txn in transactions %}
+                            <tr>
+                                <td>{{ txn.id }}</td>
+                                <td><small class="text-muted">{{ txn.timestamp }}</small></td>
+                                <td>
+                                    {% if txn.txn_type == 'Cash In' %}
+                                        <span class="badge bg-success text-white">Cash In</span>
+                                    {% else %}
+                                        <span class="badge bg-danger text-white">Cash Out</span>
+                                    {% endif %}
+                                </td>
+                                <td>{{ txn.own_account }}</td>
+                                <td>{{ txn.customer_phone or '-' }}</td>
+                                <td class="fw-bold">{{ "{:,.2f}".format(txn.amount) }} Ks</td>
+                                <td>{{ "{:,.2f}".format(txn.commission) }} Ks</td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="7" class="text-center text-muted py-4">မည်သည့် မှတ်တမ်းမှ မတွေ့ရှိပါ။</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
