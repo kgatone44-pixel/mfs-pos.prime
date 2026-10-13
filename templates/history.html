@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="my" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFS POS - Transaction History</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Pyidaungsu', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .navbar { background: linear-gradient(135deg, #0d6efd, #0099ff); }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+    </style>
+</head>
+<body class="bg-body-tertiary">
+
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="/dashboard">
+                <i class="fa-solid fa-store me-2"></i>MFS POS (History)
+            </a>
+            <div class="d-flex align-items-center">
+                <a href="/dashboard" class="btn btn-light btn-sm me-2 fw-bold text-primary">
+                    <i class="fa-solid fa-house me-1"></i> <span data-lang-my="ပင်မစာမျက်နှာ" data-lang-en="Dashboard">ပင်မစာမျက်နှာ</span>
+                </a>
+
+                <!-- Settings Dropdown (Theme & Language Switcher) -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><h6 class="dropdown-header" data-lang-my="Theme ဆက်တင်" data-lang-en="Theme Settings">Theme ဆက်တင်</h6></li>
+                        <li><button class="dropdown-item" onclick="setTheme('light')"><i class="fa-solid fa-sun text-warning me-2"></i> Light Mode</button></li>
+                        <li><button class="dropdown-item" onclick="setTheme('dark')"><i class="fa-solid fa-moon text-info me-2"></i> Dark Mode</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header" data-lang-my="ဘာသာစကား (Language)" data-lang-en="Language">ဘာသာစကား (Language)</h6></li>
+                        <li><button class="dropdown-item" onclick="setLanguage('my')">🇲🇲 မြန်မာစာ (Myanmar)</button></li>
+                        <li><button class="dropdown-item" onclick="setLanguage('en')">🇬🇧 English</button></li>
+                    </ul>
+                </div>
+
+                <a href="/logout" class="btn btn-outline-light btn-sm">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i> <span data-lang-my="ထွက်ရန်" data-lang-en="Logout">ထွက်ရန်</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+
+        <!-- Header & Search Box Card -->
+        <div class="card p-4 mb-4">
+            <div class="row align-items-center">
+                <div class="col-md-5 mb-3 mb-md-0">
+                    <h4 class="fw-bold m-0">
+                        <i class="fa-solid fa-clock-rotate-left text-primary me-2"></i>
+                        <span data-lang-my="ငွေစာရင်း မှတ်တမ်းအဟောင်းများ" data-lang-en="Transaction History">ငွေစာရင်း မှတ်တမ်းအဟောင်းများ</span>
+                    </h4>
+                </div>
+                <div class="col-md-7">
+                    <form action="/history" method="GET" class="row g-2">
+                        <div class="col-sm-5">
+                            <input type="date" name="date_filter" class="form-control form-control-sm" value="{{ date_filter or '' }}">
+                        </div>
+                        <div class="col-sm-5">
+                            <input type="text" name="search" class="form-control form-control-sm" placeholder="ဖုန်းနံပါတ်၊ အကောင့် သို့မဟုတ် ID ဖြင့်ရှာရန်..." value="{{ search_query or '' }}">
+                        </div>
+                        <div class="col-sm-2">
+                            <button type="submit" class="btn btn-primary btn-sm w-100">
+                                <i class="fa-solid fa-search"></i>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </div>
+
+        <!-- Transactions Table Card -->
+        <div class="card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold m-0" data-lang-my="စာရင်းဇယားများ" data-lang-en="Records List">စာရင်းဇယားများ</h5>
+                <a href="/history" class="btn btn-outline-secondary btn-sm">
+                    <i class="fa-solid fa-rotate"></i> <span data-lang-my="စစ်ထုတ်မှု ဖြုတ်ရန်" data-lang-en="Reset Filter">စစ်ထုတ်မှု ဖြုတ်ရန်</span>
+                </a>
+            </div>
+
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th data-lang-my="အမျိုးအစား" data-lang-en="Type">အမျိုးအစား</th>
+                            <th data-lang-my="ဖုန်း/အကောင့်" data-lang-en="Phone/Acc">ဖုန်း/အကောင့်</th>
+                            <th data-lang-my="စလစ် ID" data-lang-en="Slip ID">စလစ် ID</th>
+                            <th data-lang-my="ပမာဏ" data-lang-en="Amount">ပမာဏ</th>
+                            <th data-lang-my="ကော်မရှင်" data-lang-en="Commission">ကော်မရှင်</th>
+                            <th data-lang-my="ရက်စွဲနှင့် အချိန်" data-lang-en="Timestamp">ရက်စွဲနှင့် အချိန်</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if transactions %}
+                            {% for txn in transactions %}
+                            <tr>
+                                <td>
+                                    {% if txn.txn_type == 'Cash In' %}
+                                        <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 fw-bold">Cash In</span>
+                                    {% else %}
+                                        <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 fw-bold">Cash Out</span>
+                                    {% endif %}
+                                </td>
+                                <td>
+                                    <div>{{ txn.customer_phone or '-' }}</div>
+                                    <small class="text-muted">{{ txn.own_account or 'Main' }}</small>
+                                </td>
+                                <td><code>{{ txn.txn_id or '-' }}</code></td>
+                                <td class="fw-semibold">{{ "{:,.0f}".format(txn.amount) }} Ks</td>
+                                <td class="text-primary fw-semibold">+{{ "{:,.0f}".format(txn.commission) }} Ks</td>
+                                <td class="text-muted small">{{ txn.timestamp }}</td>
+                            </tr>
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="6" class="text-center py-5 text-muted" data-lang-my="ရှာဖွေတွေ့ရှိသော ငွေစာရင်း မှတ်တမ်း မရှိပါ။" data-lang-en="No transaction records found.">ရှာဖွေတွေ့ရှိသော ငွေစာရင်း မှတ်တမ်း မရှိပါ။</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Theme Switcher Logic
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('pos_theme', theme);
+        }
+        
+        // Language Switcher Logic
+        function setLanguage(lang) {
+            localStorage.setItem('pos_lang', lang);
+            document.querySelectorAll('[data-lang-my]').forEach(el => {
+                if (lang === 'en') {
+                    el.innerText = el.getAttribute('data-lang-en');
+                } else {
+                    el.innerText = el.getAttribute('data-lang-my');
+                }
+            });
+        }
+
+        // Startup Configuration (Sync with Dashboard state)
+        const savedTheme = localStorage.getItem('pos_theme') || 'light';
+        setTheme(savedTheme);
+
+        const savedLang = localStorage.getItem('pos_lang') || 'my';
+        setLanguage(savedLang);
+    </script>
+</body>
+</html>
