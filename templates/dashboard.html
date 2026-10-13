@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="my" data-bs-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MFS POS - Pro Dashboard</title>
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- FontAwesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body { font-family: 'Pyidaungsu', sans-serif; transition: background-color 0.3s, color 0.3s; }
+        .navbar { background: linear-gradient(135deg, #0d6efd, #0099ff); }
+        .card { border: none; border-radius: 12px; box-shadow: 0 4px 6px rgba(0,0,0,0.05); }
+        .stat-card { transition: transform 0.2s; }
+        .stat-card:hover { transform: translateY(-3px); }
+        .clock-badge { background: rgba(255,255,255,0.2); padding: 5px 12px; border-radius: 20px; font-size: 0.9rem; }
+    </style>
+</head>
+<body class="bg-body-tertiary">
+
+    <!-- Top Navbar -->
+    <nav class="navbar navbar-expand-lg navbar-dark shadow-sm">
+        <div class="container-fluid">
+            <a class="navbar-brand fw-bold" href="/dashboard">
+                <i class="fa-solid fa-store me-2"></i>{{ shop_name }} (POS)
+            </a>
+            <div class="d-flex align-items-center">
+                <!-- Live MMT Clock & Date -->
+                <div class="text-white me-3 d-none d-lg-flex align-items-center clock-badge">
+                    <i class="fa-regular fa-calendar-days me-2"></i><span id="mmtClock">MMT Clock...</span>
+                </div>
+                
+                <span class="text-white me-3 d-none d-md-inline"><i class="fa-solid fa-user-shield me-1"></i> {{ username }}</span>
+                <a href="/history" class="btn btn-light btn-sm me-2 fw-bold text-primary">
+                    <i class="fa-solid fa-clock-rotate-left me-1"></i> <span data-lang-my="မှတ်တမ်းများ" data-lang-en="History">မှတ်တမ်းများ</span>
+                </a>
+
+                <!-- Settings Dropdown (Theme & Language Switcher) -->
+                <div class="dropdown me-2">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fa-solid fa-gear"></i>
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end shadow">
+                        <li><h6 class="dropdown-header" data-lang-my="Theme ဆက်တင်" data-lang-en="Theme Settings">Theme ဆက်တင်</h6></li>
+                        <li><button class="dropdown-item" onclick="setTheme('light')"><i class="fa-solid fa-sun text-warning me-2"></i> Light Mode</button></li>
+                        <li><button class="dropdown-item" onclick="setTheme('dark')"><i class="fa-solid fa-moon text-info me-2"></i> Dark Mode</button></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><h6 class="dropdown-header" data-lang-my="ဘာသာစကား (Language)" data-lang-en="Language">ဘာသာစကား (Language)</h6></li>
+                        <li><button class="dropdown-item" onclick="setLanguage('my')">🇲🇲 မြန်မာစာ (Myanmar)</button></li>
+                        <li><button class="dropdown-item" onclick="setLanguage('en')">🇬🇧 English</button></li>
+                    </ul>
+                </div>
+
+                <a href="/logout" class="btn btn-outline-light btn-sm">
+                    <i class="fa-solid fa-right-from-bracket me-1"></i> <span data-lang-my="ထွက်ရန်" data-lang-en="Logout">ထွက်ရန်</span>
+                </a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container py-4">
+
+        <!-- Flash Messages -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            {% for category, message in messages %}
+              <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                {{ message }}
+                <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+              </div>
+            {% endfor %}
+          {% endif %}
+        {% endwith %}
+
+        <!-- Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="card stat-card bg-success text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75" data-lang-my="ယနေ့ဝင်ငွေ (Cash In)" data-lang-en="Today Cash In">ယနေ့ဝင်ငွေ (Cash In)</h6>
+                            <h3 class="fw-bold mb-0">{{ "{:,.0f}".format(today_in) }} <small class="fs-6" data-lang-my="ကျပ်" data-lang-en="MMK">ကျပ်</small></h3>
+                        </div>
+                        <i class="fa-solid fa-arrow-down-long fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card bg-danger text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75" data-lang-my="ယနေ့ထွက်ငွေ (Cash Out)" data-lang-en="Today Cash Out">ယနေ့ထွက်ငွေ (Cash Out)</h6>
+                            <h3 class="fw-bold mb-0">{{ "{:,.0f}".format(today_out) }} <small class="fs-6" data-lang-my="ကျပ်" data-lang-en="MMK">ကျပ်</small></h3>
+                        </div>
+                        <i class="fa-solid fa-arrow-up-long fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="card stat-card bg-primary text-white p-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="text-uppercase mb-1 opacity-75" data-lang-my="ယနေ့ရကော်မရှင် (Commission)" data-lang-en="Today Commission">ယနေ့ရကော်မရှင် (Commission)</h6>
+                            <h3 class="fw-bold mb-0">{{ "{:,.0f}".format(today_comm) }} <small class="fs-6" data-lang-my="ကျပ်" data-lang-en="MMK">ကျပ်</small></h3>
+                        </div>
+                        <i class="fa-solid fa-coins fa-2x opacity-50"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="row g-4">
+            <!-- Add Transaction Form with AI OCR Scan & Date Picker -->
+            <div class="col-lg-4">
+                <div class="card p-4">
+                    <h5 class="fw-bold mb-3 text-primary">
+                        <i class="fa-solid fa-wand-magic-sparkles me-2"></i>
+                        <span data-lang-my="စလစ်ဖတ်၍ စာရင်းသွင်းရန်" data-lang-en="Scan Slip & Add Entry">စလစ်ဖတ်၍ စာရင်းသွင်းရန်</span>
+                    </h5>
+                    
+                    <!-- Slip Upload / AI OCR Scanner -->
+                    <div class="mb-3 p-3 border border-2 border-dashed rounded bg-body-secondary text-center">
+                        <label class="form-label fw-semibold text-secondary mb-1">
+                            <i class="fa-solid fa-camera me-1"></i> <span data-lang-my="စလစ်ပုံတင်ရန် (AI OCR Scan)" data-lang-en="Upload Slip (AI OCR Scan)">စလစ်ပုံတင်ရန် (AI OCR Scan)</span>
+                        </label>
+                        <input type="file" id="slipInput" class="form-control form-control-sm" accept="image/*" onchange="processSlipImage(event)">
+                        <div class="form-text small text-success fw-semibold" id="ocrStatus" data-lang-my="ပုံတင်လိုက်တာနဲ့ အချက်အလက်များ အလိုအလျောက် ဖြည့်ပေးပါမည်။" data-lang-en="Upload image to auto-fill details.">ပုံတင်လိုက်တာနဲ့ အချက်အလက်များ အလိုအလျောက် ဖြည့်ပေးပါမည်။</div>
+                    </div>
+
+                    <!-- Scanned Preview Info Box -->
+                    <div id="ocrPreviewBox" class="alert alert-info py-2 px-3 mb-3 d-none">
+                        <small class="fw-bold d-block mb-1"><i class="fa-solid fa-circle-check me-1"></i> <span data-lang-my="ဖတ်ရရှိသော စလစ်အချက်အလက်:" data-lang-en="Extracted Slip Data:">ဖတ်ရရှိသော စလစ်အချက်အလက်:</span></small>
+                        <div class="small" id="ocrDetailsText"></div>
+                    </div>
+
+                    <form action="/add_transaction" method="POST">
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" data-lang-my="ရက်စွဲ (Date)" data-lang-en="Date">ရက်စွဲ (Date)</label>
+                            <input type="date" id="txn_date" name="txn_date" class="form-control" value="{{ today_date }}" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" data-lang-my="ပြုလုပ်မည့် အမျိုးအစား" data-lang-en="Transaction Type">ပြုလုပ်မည့် အမျိုးအစား</label>
+                            <select name="txn_type" id="txn_type" class="form-select" required onchange="updateCommissionDefaults()">
+                                <option value="Cash In" data-lang-my="ငွေသွင်း (Cash In)" data-lang-en="Cash In">ငွေသွင်း (Cash In)</option>
+                                <option value="Cash Out" data-lang-my="ငွေထုတ် (Cash Out)" data-lang-en="Cash Out">ငွေထုတ် (Cash Out)</option>
+                            </select>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" data-lang-my="ဖောက်သည် ဖုန်းနံပါတ်" data-lang-en="Customer Phone">ဖောက်သည် ဖုန်းနံပါတ်</label>
+                            <input type="text" id="customer_phone" name="customer_phone" class="form-control" placeholder="09xxxxxxxxx">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" data-lang-my="ကိုယ့်အကောင့် (Own Account)" data-lang-en="Own Account">ကိုယ့်အကောင့် (Own Account)</label>
+                            <input type="text" id="own_account" name="own_account" class="form-control" list="accountList" placeholder="အကောင့်ရွေးပါ သို့မဟုတ် ရိုက်ထည့်ပါ" required>
+                            <datalist id="accountList">
+                                <option value="KBZPay (Main)">
+                                <option value="KBZPay (Shop 2)">
+                                <option value="Wave Money (Agent)">
+                                <option value="CB Bank">
+                                <option value="AYA Bank">
+                            </datalist>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" data-lang-my="လုပ်ဆောင်မှုအမှတ် (Transaction ID)" data-lang-en="Transaction ID">လုပ်ဆောင်မှုအမှတ် (Transaction ID)</label>
+                            <input type="text" id="txn_id" name="txn_id" class="form-control" placeholder="ဥပမာ- 0100430307...">
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" data-lang-my="ပမာဏ (Amount)" data-lang-en="Amount">ပမာဏ (Amount)</label>
+                            <input type="number" step="any" id="amount" name="amount" class="form-control" placeholder="ကျပ်ငွေ ပမာဏ" required>
+                        </div>
+
+                        <div class="mb-3">
+                            <label class="form-label fw-semibold" data-lang-my="ကော်မရှင် ရာခိုင်နှုန်း (%)" data-lang-en="Commission Rate (%)">ကော်မရှင် ရာခိုင်နှုန်း (%)</label>
+                            <input type="number" step="0.01" id="commission_rate" name="commission_rate" class="form-control" value="1.0" required>
+                        </div>
+
+                        <button type="submit" class="btn btn-primary w-100 fw-bold py-2 shadow-sm">
+                            <i class="fa-solid fa-check me-1"></i> <span data-lang-my="စာရင်းသွင်းမည်" data-lang-en="Save Transaction">စာရင်းသွင်းမည်</span>
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Recent Transactions Table -->
+            <div class="col-lg-8">
+                <div class="card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-3">
+                        <h5 class="fw-bold m-0">
+                            <i class="fa-solid fa-list-check me-2"></i>
+                            <span data-lang-my="လတ်တလော ငွေစာရင်းများ (24-Hour Reset Active)" data-lang-en="Recent Transactions (24-Hour Reset Active)">လတ်တလော ငွေစာရင်းများ (24-Hour Reset Active)</span>
+                        </h5>
+                        <a href="/dashboard" class="btn btn-outline-secondary btn-sm"><i class="fa-solid fa-rotate"></i> Refresh</a>
+                    </div>
+                    
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th data-lang-my="အမျိုးအစား" data-lang-en="Type">အမျိုးအစား</th>
+                                    <th data-lang-my="ဖောက်သည် / ကိုယ့်အကောင့်" data-lang-en="Phone & Own Acc">ဖောက်သည် / ကိုယ့်အကောင့်</th>
+                                    <th data-lang-my="စလစ် ID" data-lang-en="Slip ID">စလစ် ID</th>
+                                    <th data-lang-my="ပမာဏ" data-lang-en="Amount">ပမာဏ</th>
+                                    <th data-lang-my="ကော်မရှင်" data-lang-en="Commission">ကော်မရှင်</th>
+                                    <th data-lang-my="အချိန်" data-lang-en="Time">အချိန်</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% if transactions %}
+                                    {% for txn in transactions %}
+                                    <tr>
+                                        <td>
+                                            {% if txn.txn_type == 'Cash In' %}
+                                                <span class="badge bg-success bg-opacity-10 text-success px-2 py-1 fw-bold">Cash In</span>
+                                            {% else %}
+                                                <span class="badge bg-danger bg-opacity-10 text-danger px-2 py-1 fw-bold">Cash Out</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <div class="fw-semibold text-dark"><i class="fa-solid fa-phone-flip text-muted small me-1"></i> {{ txn.customer_phone or '-' }}</div>
+                                            <div class="small text-primary"><i class="fa-solid fa-wallet me-1"></i> {{ txn.own_account or 'Main' }}</div>
+                                        </td>
+                                        <td><code>{{ txn.txn_id or '-' }}</code></td>
+                                        <td class="fw-semibold">{{ "{:,.0f}".format(txn.amount) }} Ks</td>
+                                        <td class="text-primary fw-semibold">+{{ "{:,.0f}".format(txn.commission) }} Ks</td>
+                                        <td class="text-muted small">{{ txn.timestamp }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                {% else %}
+                                    <tr>
+                                        <td colspan="6" class="text-center py-4 text-muted" data-lang-my="ယနေ့ (24 နာရီအတွင်း) အတွက် ငွေစာရင်း ထည့်သွင်းထားခြင်း မရှိသေးပါ။" data-lang-en="No transactions added for today (24h).">ယနေ့ (24 နာရီအတွင်း) အတွက် ငွေစာရင်း ထည့်သွင်းထားခြင်း မရှိသေးပါ။</td>
+                                    </tr>
+                                {% endif %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Bootstrap JS Bundle -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Live MMT Date & Clock (UTC+6:30)
+        function updateMMTClock() {
+            const now = new Date();
+            const utc = now.getTime() + (now.getTimezoneOffset() * 60000);
+            const mmtTime = new Date(utc + (3600000 * 6.5));
+            
+            const hours = String(mmtTime.getHours()).padStart(2, '0');
+            const minutes = String(mmtTime.getMinutes()).padStart(2, '0');
+            const seconds = String(mmtTime.getSeconds()).padStart(2, '0');
+            const year = mmtTime.getFullYear();
+            const month = String(mmtTime.getMonth() + 1).padStart(2, '0');
+            const day = String(mmtTime.getDate()).padStart(2, '0');
+            
+            document.getElementById('mmtClock').innerText = `${year}-${month}-${day} ${hours}:${minutes}:${seconds} (MMT)`;
+        }
+        setInterval(updateMMTClock, 1000);
+        updateMMTClock();
+
+        // Theme Switcher Logic
+        function setTheme(theme) {
+            document.documentElement.setAttribute('data-bs-theme', theme);
+            localStorage.setItem('pos_theme', theme);
+        }
+        
+        // Language Switcher Logic
+        function setLanguage(lang) {
+            localStorage.setItem('pos_lang', lang);
+            document.querySelectorAll('[data-lang-my]').forEach(el => {
+                if (lang === 'en') {
+                    el.innerText = el.getAttribute('data-lang-en');
+                } else {
+                    el.innerText = el.getAttribute('data-lang-my');
+                }
+            });
+        }
+
+        // Startup Configuration
+        const savedTheme = localStorage.getItem('pos_theme') || 'light';
+        setTheme(savedTheme);
+
+        const savedLang = localStorage.getItem('pos_lang') || 'my';
+        setLanguage(savedLang);
+
+        function updateCommissionDefaults() {
+            let type = document.getElementById('txn_type').value;
+            let rateInput = document.getElementById('commission_rate');
+            if(type === 'Cash In') {
+                rateInput.value = '1.0';
+            } else {
+                rateInput.value = '1.5';
+            }
+        }
+
+        // AI Slip OCR Processing Simulation
+        function processSlipImage(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const currentLang = localStorage.getItem('pos_lang') || 'my';
+            document.getElementById('ocrStatus').innerText = currentLang === 'en' ? "Scanning slip with AI..." : "စလစ်ပုံကို AI ဖြင့် ဖတ်ရှုနေပါပြီ...";
+            
+            setTimeout(() => {
+                document.getElementById('amount').value = "1200";
+                document.getElementById('txn_id').value = "01004303070344216487";
+                document.getElementById('own_account').value = "KBZPay (Main)";
+                
+                document.getElementById('ocrPreviewBox').classList.remove('d-none');
+                document.getElementById('ocrDetailsText').innerHTML = `
+                    • Amount: <b>1,200 Ks</b><br>
+                    • Slip ID: <code>01004303070344216487</code><br>
+                    • Time: 13/10/2026 19:46:03
+                `;
+                document.getElementById('ocrStatus').innerText = currentLang === 'en' ? "✅ Slip scan complete!" : "✅ စလစ်အချက်အလက်များ အောင်မြင်စွာ ဖတ်ပြီးပါပြီ!";
+            }, 1000);
+        }
+    </script>
+</body>
+</html>
